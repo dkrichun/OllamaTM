@@ -1,0 +1,60 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<AssemblyName>OllamaTM</AssemblyName>
+		<RootNamespace>OllamaTM</RootNamespace>
+		<Product>OllamaTM</Product>
+		<AssemblyTitle>OllamaTM — трей-менеджер службы Ollama</AssemblyTitle>
+		<Version>1.0.0</Version>
+		<FileVersion>1.0.0.0</FileVersion>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>latest</LangVersion>
+
+		<!-- DPI и манифест (указываются только один раз!) -->
+		<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+
+		<EnableComHosting>false</EnableComHosting>
+		<EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+
+		<!-- Компактная framework-dependent сборка -->
+		<SelfContained>false</SelfContained>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<PublishSingleFile>true</PublishSingleFile>
+		<PublishTrimmed>false</PublishTrimmed>
+		<PublishReadyToRun>false</PublishReadyToRun>
+
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+		<ApplicationIcon>green.ico</ApplicationIcon>
+	</PropertyGroup>
+
+	<!-- Пакет для работы со службами Windows -->
+	<ItemGroup>
+		<PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.0" />
+	</ItemGroup>
+
+	<!-- Копирование внешних файлов (иконки и ini) рядом с exe -->
+	<ItemGroup>
+		<None Update="OllamaTM.ini">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</None>
+		<None Update="green.ico">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</None>
+		<None Update="red.ico">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</None>
+	</ItemGroup>
+
+</Project>
