@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 
@@ -8,7 +8,7 @@ namespace OllamaTM
     {
         private static readonly object _lock = new object();
         private static readonly string _logPath = Path.Combine(AppContext.BaseDirectory, "OllamaTM.log");
-        private const long MaxSizeBytes = 5 * 1024 * 1024; // Ротация при размере 5 МБ
+        private const long MaxSizeBytes = 5 * 1024 * 1024;
 
         public static void Info(string message) => Write("INFO", message);
         public static void Warn(string message) => Write("WARN", message);
@@ -40,7 +40,7 @@ namespace OllamaTM
                     File.AppendAllText(_logPath, line, Encoding.UTF8);
                 }
             }
-            catch { /* Игнорируем ошибки логирования */ }
+            catch { }
         }
     }
 }
