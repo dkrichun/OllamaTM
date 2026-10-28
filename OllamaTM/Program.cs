@@ -10,7 +10,6 @@ namespace OllamaTM
         [STAThread]
         static void Main()
         {
-            // Глобальный перехват ошибок
             Application.ThreadException += (s, e) => Logger.Error("Необработанная ошибка интерфейса", e.Exception);
             AppDomain.CurrentDomain.UnhandledException += (s, e) => Logger.Error("Критическая ошибка", e.ExceptionObject as Exception);
 
