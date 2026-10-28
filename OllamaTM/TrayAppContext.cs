@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.IO;
 using System.ServiceProcess;
@@ -23,6 +23,7 @@ namespace OllamaTM
         private int _startTimeoutSec = 15;
         private int _stopTimeoutSec = 15;
         private bool _notifyOnChange = true;
+        private string? _detectedOllamaPath;
 
         private Icon? _greenIcon;
         private Icon? _redIcon;
@@ -31,7 +32,7 @@ namespace OllamaTM
 
         private FileSystemWatcher? _watcher;
         private CancellationTokenSource? _debounceCts;
-
+        
         private readonly SemaphoreSlim _serviceLock = new(1, 1);
         private bool _lastRunningState;
         private bool _hasStateInitialized = false;
@@ -78,12 +79,25 @@ namespace OllamaTM
         {
             if (e.Button != MouseButtons.Left) return;
 
-            _service.Refresh();
-            bool running = _service.Status == ServiceControllerStatus.Running
-                        || _service.Status == ServiceControllerStatus.StartPending;
+            try
+            {
+                _service.Refresh();
+                bool running = _service.Status == ServiceControllerStatus.Running
+                            || _service.Status == ServiceControllerStatus.StartPending;
 
-            if (running) await StopServiceAsync();
-            else await StartServiceAsync();
+                if (running) await StopServiceAsync();
+                else await StartServiceAsync();
+            }
+            catch (InvalidOperationException)
+            {
+                _trayIcon.ShowBalloonTip(3000, "OllamaTM",
+                    $"Служба '{_serviceName}' не установлена.\nУстановите её для управления.",
+                    ToolTipIcon.Warning);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Ошибка при клике по иконке", ex);
+            }
         }
 
         private void ApplyConfig(IniConfig cfg)
@@ -117,6 +131,16 @@ namespace OllamaTM
                 _serviceName = newName;
                 _service = new ServiceController(_serviceName);
                 _hasStateInitialized = false;
+            }
+
+            // Поиск Ollama.exe (один раз при старте)
+            if (_detectedOllamaPath == null)
+            {
+                _detectedOllamaPath = OllamaLocator.FindExecutable();
+                if (_detectedOllamaPath != null)
+                    Logger.Info($"Ollama.exe найден: {_detectedOllamaPath}");
+                else
+                    Logger.Warn("Ollama.exe не найден ни по одному из путей поиска.");
             }
 
             if (!_statusTimer.Enabled) _statusTimer.Start();
@@ -156,8 +180,8 @@ namespace OllamaTM
                 _menu.Items[MenuStart].Enabled = !running;
                 _menu.Items[MenuStop].Enabled = running;
                 _menu.Items[MenuRestart].Enabled = running;
+                _menu.Items[MenuExit].Enabled = true;
 
-                // Уведомление о смене статуса
                 if (_hasStateInitialized && _lastRunningState != running && _notifyOnChange)
                 {
                     string msg = running ? "Служба запущена" : "Служба остановлена";
@@ -170,10 +194,29 @@ namespace OllamaTM
             catch (InvalidOperationException)
             {
                 _trayIcon.Icon = _redIcon;
-                _trayIcon.Text = $"Служба '{_serviceName}' не найдена";
+                
+                _trayIcon.Text = _detectedOllamaPath != null
+                    ? "Ollama: не служба (файл найден)"
+                    : "Ollama: не установлена";
+
                 _menu.Items[MenuStart].Enabled = false;
                 _menu.Items[MenuStop].Enabled = false;
                 _menu.Items[MenuRestart].Enabled = false;
+                _menu.Items[MenuExit].Enabled = true;
+
+                _hasStateInitialized = false;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Ошибка при обновлении статуса службы", ex);
+                _trayIcon.Icon = _redIcon;
+                _trayIcon.Text = $"Ошибка чтения статуса '{_serviceName}'";
+
+                _menu.Items[MenuStart].Enabled = false;
+                _menu.Items[MenuStop].Enabled = false;
+                _menu.Items[MenuRestart].Enabled = false;
+                _menu.Items[MenuExit].Enabled = true;
+                _hasStateInitialized = false;
             }
         }
 
@@ -266,6 +309,7 @@ namespace OllamaTM
             _menu.Items[MenuStart].Enabled = enabled;
             _menu.Items[MenuStop].Enabled = enabled;
             _menu.Items[MenuRestart].Enabled = enabled;
+            _menu.Items[MenuExit].Enabled = true;
         }
 
         private void SetupWatcher()
@@ -318,7 +362,7 @@ namespace OllamaTM
             {
                 Logger.Info("Обнаружено изменение INI. Перезагрузка настроек.");
                 var cfg = IniConfig.Load(_iniPath);
-
+                
                 if (_serviceLock.Wait(0))
                 {
                     try { ApplyConfig(cfg); }
